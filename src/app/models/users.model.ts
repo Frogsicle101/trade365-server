@@ -1,7 +1,9 @@
 import { getPool } from "../../config/db";
 import Logger from "../../config/logger";
 import {ResultSetHeader} from "mysql2";
+import bcrypt from "bcrypt";
 
+const saltRounds: number = 10;
 
 
 const getOne = async (id: number) : Promise<User[]> => {
@@ -16,8 +18,9 @@ const getOne = async (id: number) : Promise<User[]> => {
 const insert = async (firstName: string, lastName: string, email: string, password: string) : Promise<ResultSetHeader> => {
     Logger.info(`Adding user to the database`);
     const conn = await getPool().getConnection();
+    const hash : string = await bcrypt.hash(password, saltRounds);
     const query = 'insert into user (first_name, last_name, email, password) values (?, ?, ?, ?)';
-    const [ result ] = await conn.query( query, [firstName, lastName, email, password] );
+    const [ result ] = await conn.query( query, [firstName, lastName, email, hash] );
     conn.release();
     return result;
 };

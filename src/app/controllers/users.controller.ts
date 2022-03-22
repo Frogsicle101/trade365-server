@@ -1,6 +1,8 @@
 import * as users from '../models/users.model';
 import Logger from "../../config/logger";
 import {Request, Response} from "express";
+import {Result, ValidationError, validationResult} from "express-validator";
+import {emailAlreadyRegistered} from "../models/users.model";
 
 const read = async (req: Request, res: Response) : Promise<void> =>
 {
@@ -27,24 +29,25 @@ const read = async (req: Request, res: Response) : Promise<void> =>
 const create = async (req: Request, res: Response) : Promise<void> => {
     Logger.http(`POST create a user`)
 
-    if (!req.body.hasOwnProperty("firstName")) {
-        res.status(400).send("Please provide firstName field");
-        return
-    }
-
-    if (await users.emailAlreadyRegistered(req.body.email)) {
-        res.status(400).send("The email is already in the database");
-        return
-    }
-
     try {
-        const result = await users.insert(
-            req.body.firstName,
-            req.body.lastName,
-            req.body.email,
-            req.body.password
-        );
-        res.status(201).send({"userId": result.insertId});
+        const errors: Result<ValidationError> = validationResult(req);
+        if (!errors.isEmpty()) {
+            res.status(400).json({ errors: errors.array() });
+            return
+        }
+
+        if (!await emailAlreadyRegistered(req.body.email)) {
+            const result = await users.insert(
+                req.body.firstName,
+                req.body.lastName,
+                req.body.email,
+                req.body.password
+            );
+            res.status(201).send({"userId": result.insertId});
+        } else {
+            res.status(400).send("Email already registered");
+        }
+
     } catch (err) {
         res.status(500).send(`ERROR creating user: ${err}`);
     }

@@ -1,9 +1,8 @@
 import { getPool } from "../../config/db";
 import Logger from "../../config/logger";
 import {ResultSetHeader} from "mysql2";
-import bcrypt from "bcrypt";
+import * as passwords from "../services/passwords.service";
 
-const saltRounds: number = 10;
 
 
 const getOne = async (id: number) : Promise<User[]> => {
@@ -18,12 +17,29 @@ const getOne = async (id: number) : Promise<User[]> => {
 const insert = async (firstName: string, lastName: string, email: string, password: string) : Promise<ResultSetHeader> => {
     Logger.info(`Adding user to the database`);
     const conn = await getPool().getConnection();
-    const hash : string = await bcrypt.hash(password, saltRounds);
+
     const query = 'insert into user (first_name, last_name, email, password) values (?, ?, ?, ?)';
-    const [ result ] = await conn.query( query, [firstName, lastName, email, hash] );
+    const [ result ] = await conn.query( query, [firstName, lastName, email, password] );
     conn.release();
     return result;
 };
+
+const getPasswordForEmail = async (email: string) : Promise<User[]> => {
+    const conn = await getPool().getConnection();
+    const query = 'select id, password from user where email = ?';
+    const [ result ] = await conn.query( query, [email] );
+    conn.release();
+    return result;
+}
+
+const saveToken = async (id: number, token: string) : Promise<void> => {
+    const conn = await getPool().getConnection();
+    const query = 'update user set auth_token = ? where id = ?';
+    conn.query( query, [token, id] );
+    conn.release();
+}
+
+
 
 const emailAlreadyRegistered = async (email: string) : Promise<boolean> => {
     const conn = await getPool().getConnection();
@@ -34,4 +50,4 @@ const emailAlreadyRegistered = async (email: string) : Promise<boolean> => {
     return result[0].count !== 0;
 }
 
-export {getOne, insert, emailAlreadyRegistered}
+export {getOne, insert, getPasswordForEmail, saveToken, emailAlreadyRegistered}

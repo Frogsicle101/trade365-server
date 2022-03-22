@@ -4,6 +4,7 @@ import {rootUrl} from "./base.routes"
 
 
 import * as users from '../controllers/users.controller';
+import {loginRequired} from "../middleware/authenticate.middleware";
 
 module.exports = ( app: Express ) => {
     app.route(rootUrl + '/users/:id')
@@ -14,4 +15,16 @@ module.exports = ( app: Express ) => {
             body("email").isEmail(),
             users.create
         );
+    app.route(rootUrl + "/users/login")
+        .post(
+            body(["email", "password"]).exists(),
+            body("email").isEmail(),
+            users.login
+        );
+    app.route(rootUrl + "/users/logout")
+        .post(
+            body('X-Authorization').exists(),
+            loginRequired,
+            users.logout
+        )
 };

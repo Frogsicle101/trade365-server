@@ -24,7 +24,7 @@ const insert = async (firstName: string, lastName: string, email: string, passwo
     return result;
 };
 
-const getPasswordForEmail = async (email: string) : Promise<User[]> => {
+const getPasswordByEmail = async (email: string) : Promise<User[]> => {
     const conn = await getPool().getConnection();
     const query = 'select id, password from user where email = ?';
     const [ result ] = await conn.query( query, [email] );
@@ -32,11 +32,27 @@ const getPasswordForEmail = async (email: string) : Promise<User[]> => {
     return result;
 }
 
+const getUserIdByToken = async (token: string) : Promise<User> => {
+    const conn = await getPool().getConnection();
+    const query = 'select id from user where auth_token = ?';
+    const [ result ] = await conn.query( query, [token] );
+    conn.release();
+    if (result.length === 1) {
+        return result[0];
+    } else {
+        return null;
+    }
+}
+
 const saveToken = async (id: number, token: string) : Promise<void> => {
     const conn = await getPool().getConnection();
     const query = 'update user set auth_token = ? where id = ?';
     conn.query( query, [token, id] );
     conn.release();
+}
+
+const deleteToken = async (id: number) : Promise<void> => {
+    await saveToken(id, null);
 }
 
 
@@ -50,4 +66,4 @@ const emailAlreadyRegistered = async (email: string) : Promise<boolean> => {
     return result[0].count !== 0;
 }
 
-export {getOne, insert, getPasswordForEmail, saveToken, emailAlreadyRegistered}
+export {getOne, insert, getPasswordByEmail, getUserIdByToken, saveToken, deleteToken, emailAlreadyRegistered}

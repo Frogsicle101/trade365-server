@@ -8,7 +8,11 @@ import {loginRequired} from "../middleware/authenticate.middleware";
 
 module.exports = ( app: Express ) => {
     app.route(rootUrl + '/users/:id')
-        .get(users.read);
+        .get(users.read)
+        .patch(
+            loginRequired,
+            body("email").isEmail(),
+            users.update)
     app.route(rootUrl + "/users/register")
         .post(
             body(["firstName", "lastName", "email", "password"]).exists(),
@@ -23,7 +27,6 @@ module.exports = ( app: Express ) => {
         );
     app.route(rootUrl + "/users/logout")
         .post(
-            body('X-Authorization').exists(),
             loginRequired,
             users.logout
         )

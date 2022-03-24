@@ -115,9 +115,47 @@ const update = async (req: Request, res:Response) : Promise<void> => {
             res.status(400).json({ errors: errors.array() });
             return
         }
-
-    if (req.params.id !== req.body.authenticatedUserId) {
+    const id = parseInt(req.params.id, 10)
+    if (id !== req.body.authenticatedUserId) {
         res.status(403).send()
+    } else {
+        const result = await users.getOne(id);
+        if( result.length === 0 ) {
+            res.status( 404 ).send('User not found');
+        } else {
+
+            const properties: Partial<Properties> = {};
+
+            if (req.body.hasOwnProperty("firstName")) {
+                properties.first_name = req.body.firstName;
+            }
+            if (req.body.hasOwnProperty("lastName")) {
+                properties.last_name = req.body.lastName;
+            }
+            if (req.body.hasOwnProperty("email")) {
+                if (req.body.email.isEmail()) {
+                    properties.email = req.body.email;
+                } else {
+                    res.statusMessage += ": email must be a valid email address";
+                    res.status(400).send();
+                    return
+                }
+            }
+            if (req.body.hasOwnProperty("password")) {
+                const hash = await users.getPasswordById(id);
+                if (req.body.hasOwnProperty("currentPassword") && await passwords.match(req.body.currentPassword, hash)) {
+                    properties.password = req.body.password;
+                } else {
+                    res.statusMessage += ": Incorrect Password";
+                    res.status(400).send();
+                    return
+                }
+
+            }
+
+            await users.updateUser(id, properties);
+            res.status(200).send();
+        }
     }
 
     } catch (err) {
@@ -125,4 +163,4 @@ const update = async (req: Request, res:Response) : Promise<void> => {
     }
 };
 
-export {read, create, login, logout}
+export {read, create, login, logout, update}

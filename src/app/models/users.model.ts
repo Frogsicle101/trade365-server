@@ -1,8 +1,6 @@
 import { getPool } from "../../config/db";
 import Logger from "../../config/logger";
 import {ResultSetHeader} from "mysql2";
-import * as passwords from "../services/passwords.service";
-
 
 
 const getOne = async (id: number) : Promise<User[]> => {
@@ -23,6 +21,14 @@ const insert = async (firstName: string, lastName: string, email: string, passwo
     conn.release();
     return result;
 };
+
+const getPasswordById = async (id: number) : Promise<string> => {
+    const conn = await getPool().getConnection();
+    const query = 'select password from user where id = ?';
+    const [ result ] = await conn.query( query, id);
+    conn.release();
+    return result[0].password;
+}
 
 const getPasswordByEmail = async (email: string) : Promise<User[]> => {
     const conn = await getPool().getConnection();
@@ -51,6 +57,22 @@ const saveToken = async (id: number, token: string) : Promise<void> => {
     conn.release();
 }
 
+const updateUser = async (id : number, properties: Partial<Properties>) : Promise<void> => {
+
+    const conn = await getPool().getConnection();
+
+    let query = 'update user set'
+    for (const property in properties) {
+        if (properties.hasOwnProperty(property)) {
+            query += ` ${conn.escapeId(property)} = ${conn.escape(properties[property as keyof typeof properties])}`
+        }
+    }
+    query += ' where id = ?'
+    ;
+    conn.query(query, id);
+    conn.release();
+}
+
 const deleteToken = async (id: number) : Promise<void> => {
     await saveToken(id, null);
 }
@@ -66,4 +88,4 @@ const emailAlreadyRegistered = async (email: string) : Promise<boolean> => {
     return result[0].count !== 0;
 }
 
-export {getOne, insert, getPasswordByEmail, getUserIdByToken, saveToken, deleteToken, emailAlreadyRegistered}
+export {getOne, insert, getPasswordById, getPasswordByEmail, getUserIdByToken, updateUser, saveToken, deleteToken, emailAlreadyRegistered}

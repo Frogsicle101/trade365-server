@@ -11,7 +11,6 @@ module.exports = ( app: Express ) => {
         .get(users.read)
         .patch(
             loginRequired,
-            body("email").isEmail(),
             users.update)
     app.route(rootUrl + "/users/register")
         .post(

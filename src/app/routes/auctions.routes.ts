@@ -10,5 +10,7 @@ module.exports = ( app: Express ) => {
     app.route(rootUrl + '/auctions/:id')
         .get(auctions.read)
         .delete(auctions.remove);
+    app.route(rootUrl + '/auctions')
+        .get(auctions.list);
 
 };

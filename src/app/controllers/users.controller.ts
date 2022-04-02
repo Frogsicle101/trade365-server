@@ -5,21 +5,35 @@ import {Result, ValidationError, validationResult} from "express-validator";
 import {uid} from 'rand-token';
 
 import * as passwords from "../services/passwords.service";
+import {getUserIdByToken} from "../models/users.model";
 
 const read = async (req: Request, res: Response) : Promise<void> => {
     Logger.http(`GET single user id: ${req.params.id}`)
     const id = req.params.id;
+
     try {
-        const result = await users.getOne( parseInt(id, 10) );
+        const numId = parseInt(req.params.id, 10);
+        const token = req.header('X-Authorization');
+        const authId = (await getUserIdByToken(token)).id;
+
+        const result = await users.getOne(numId);
         if( result.length === 0 ){
             res.status( 404 ).send('User not found');
         } else {
             const user: User = result[0]
-            res.status( 200 ).send({
-                firstName: user.first_name,
-                lastName: user.last_name,
-                email: user.email
-            });
+            if (authId === numId) {
+                res.status( 200 ).send({
+                    firstName: user.first_name,
+                    lastName: user.last_name,
+                    email: user.email
+                });
+            } else {
+                res.status( 200 ).send({
+                    firstName: user.first_name,
+                    lastName: user.last_name,
+                });
+            }
+
         }
     } catch( err ) {
         res.status( 500 ).send( `ERROR reading user ${id}: ${ err }`

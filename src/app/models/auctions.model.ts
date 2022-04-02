@@ -1,6 +1,7 @@
 import { getPool } from "../../config/db";
 import Logger from "../../config/logger";
 import {Auction, Category} from "../../auction_types";
+import {ResultSetHeader} from "mysql2";
 
 
 const sortText = (sortBy: string) => {
@@ -99,6 +100,24 @@ const getOne = async (id: number) : Promise<Auction> => {
     return rows.length === 1 ? rows[0] : null;
 };
 
+const insert = async (title: string, description: string, categoryId: number, endDate: string, reserve: number, sellerId: number) : Promise<ResultSetHeader> => {
+    Logger.info(`Adding auction to the database`);
+    const conn = await getPool().getConnection();
+
+    const query = 'insert into auction (title, description, category_id, end_date, reserve, seller_id) values (?, ?, ?, ?, ?, ?)';
+    const [ result ] = await conn.query( query, [
+        title,
+        description,
+        categoryId,
+        endDate,
+        reserve,
+        sellerId
+    ] );
+    conn.release();
+    return result;
+};
+
+
 const remove = async (id: number) : Promise<void> => {
     Logger.info(`Deleting auction ${id} from the database`);
     const conn = await getPool().getConnection();
@@ -106,6 +125,15 @@ const remove = async (id: number) : Promise<void> => {
     await conn.query(query, id);
     conn.release();
 
+}
+
+const categoryExists = async (categoryId: number) : Promise<boolean> => {
+    const conn = await getPool().getConnection();
+
+    const query = 'select * from category where id = ?'
+    const [ rows ] = await conn.query(query, categoryId);
+    conn.release();
+    return rows.length === 1;
 }
 
 const getCategories = async () : Promise<Category[]> => {
@@ -118,4 +146,4 @@ const getCategories = async () : Promise<Category[]> => {
     return rows;
 };
 
-export {getAll, getOne, remove, getCategories}
+export {getAll, getOne, insert, remove, categoryExists, getCategories}

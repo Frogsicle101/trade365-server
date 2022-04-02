@@ -2,6 +2,7 @@ import {Express} from "express";
 import {body} from "express-validator";
 import {rootUrl} from "./base.routes"
 import * as auctions from '../controllers/auctions.controller';
+import {loginRequired} from "../middleware/authenticate.middleware";
 
 
 module.exports = ( app: Express ) => {
@@ -11,6 +12,11 @@ module.exports = ( app: Express ) => {
         .get(auctions.read)
         .delete(auctions.remove);
     app.route(rootUrl + '/auctions')
-        .get(auctions.list);
+        .get(auctions.list)
+        .post(
+            loginRequired,
+            body(["title", "description", "endDate", "categoryId"]).exists(),
+            auctions.create
+        )
 
 };

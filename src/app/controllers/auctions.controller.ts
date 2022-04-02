@@ -1,6 +1,8 @@
 import {Request, Response} from "express";
 import Logger from "../../config/logger";
 import * as auctions from "../models/auctions.model";
+import {Result, ValidationError, validationResult} from "express-validator";
+import moment from 'moment';
 
 const list = async (req: Request, res: Response): Promise<void> => {
     Logger.http(`GET multiple auctions`)
@@ -61,6 +63,44 @@ const list = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
+const create = async (req: Request, res: Response) : Promise<void> => {
+    Logger.http(`POST create an auction`)
+
+    const errors: Result<ValidationError> = validationResult(req);
+    if (!errors.isEmpty()) {
+        res.status(400).json({ errors: errors.array() });
+        return
+    }
+
+    let reserve: number = 0;
+    if (req.body.hasOwnProperty("reserve")) {
+        reserve = parseInt(req.body.reserve, 10);
+    }
+
+    const currentDate = moment().format("YYYY-MM-DD HH:mm:ss.sss");
+    if (req.body.endDate < currentDate) {
+        res.statusMessage += "Date must be in future";
+        res.status(400).send();
+        return
+    }
+
+    const categoryId = parseInt(req.body.categoryId, 10);
+
+
+    if (!await auctions.categoryExists(categoryId)) {
+        res.statusMessage += "Invalid category ID";
+        res.status(400).send();
+        return
+    }
+
+
+    try {
+        const result = await auctions.insert(req.body.title, req.body.description, req.body.categoryId, req.body.endDate, reserve, req.body.authenticatedUserId);
+        res.status(201).send({"auctionId": result.insertId});
+    } catch (err) {
+        res.status(500).send(`ERROR creating auction: ${err}`);
+    }
+};
 
 const read = async (req: Request, res: Response): Promise<void> => {
     Logger.http(`GET single auction id: ${req.params.id}`)
@@ -112,4 +152,4 @@ const readCategories = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-export {list, read, remove, readCategories};
+export {list, read, create, remove, readCategories};

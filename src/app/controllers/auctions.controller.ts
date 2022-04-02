@@ -3,6 +3,7 @@ import Logger from "../../config/logger";
 import * as auctions from "../models/auctions.model";
 import {Result, ValidationError, validationResult} from "express-validator";
 import moment from 'moment';
+import {Properties} from "../../auction_types";
 
 const list = async (req: Request, res: Response): Promise<void> => {
     Logger.http(`GET multiple auctions`)
@@ -102,6 +103,52 @@ const create = async (req: Request, res: Response) : Promise<void> => {
     }
 };
 
+const update = async (req: Request, res: Response): Promise<void> => {
+    Logger.http(`PATCH single auction id: ${req.params.id}`)
+    try {
+        const auction = await auctions.getOne(parseInt(req.params.id, 10));
+
+        if (auction === null) {
+            res.status(404).send('Auction not found');
+            return
+        } else if (req.body.authenticatedUserId !== auction.sellerId) {
+            res.status(403).send();
+            return
+        } else if (auction.numBids === 0) {
+            res.status(403).send();
+            return
+        } else {
+            const properties: Partial<Properties> = {};
+
+            if (req.body.hasOwnProperty("title")) {
+                properties.title = req.body.title;
+            }
+            if (req.body.hasOwnProperty("description")) {
+                properties.description = req.body.description;
+            }
+            if (req.body.hasOwnProperty("categoryId")) {
+                const id = parseInt(req.body.categoryId, 10);
+                if (!(await auctions.categoryExists(id))) {
+                    res.statusMessage += "Need a valid category ID";
+                    res.status(400).send();
+                    return
+                }
+                properties.category_id = id;
+            }
+            if (req.body.hasOwnProperty("reserve")) {
+                properties.reserve = parseInt(req.body.reserve, 10);
+            }
+
+            await auctions.update(auction.auctionId, properties);
+            res.status(200).send();
+
+
+        }
+    } catch (err) {
+        res.status(500).send(`ERROR updating auction : ${err}`);
+    }
+}
+
 const read = async (req: Request, res: Response): Promise<void> => {
     Logger.http(`GET single auction id: ${req.params.id}`)
     const id = req.params.id;
@@ -113,8 +160,7 @@ const read = async (req: Request, res: Response): Promise<void> => {
             res.status(200).send(result);
         }
     } catch (err) {
-        res.status(500).send(`ERROR reading auction ${id}: ${err}`
-        );
+        res.status(500).send(`ERROR reading auction ${id}: ${err}`);
     }
 };
 
@@ -129,8 +175,7 @@ const remove = async (req: Request, res: Response): Promise<void> => {
             res.status(200).send(result);
         }
     } catch (err) {
-        res.status(500).send(`ERROR reading auction ${id}: ${err}`
-        );
+        res.status(500).send(`ERROR reading auction ${id}: ${err}`);
     }
 };
 
@@ -147,9 +192,8 @@ const readCategories = async (req: Request, res: Response): Promise<void> => {
         });
         res.status(200).send(array);
     } catch (err) {
-        res.status(500).send(`ERROR reading auction ${id}: ${err}`
-        );
+        res.status(500).send(`ERROR reading auction ${id}: ${err}`);
     }
 };
 
-export {list, read, create, remove, readCategories};
+export {list, read, create, update, remove, readCategories};

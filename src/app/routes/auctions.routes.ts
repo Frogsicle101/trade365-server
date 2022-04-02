@@ -10,7 +10,12 @@ module.exports = ( app: Express ) => {
         .get(auctions.readCategories);
     app.route(rootUrl + '/auctions/:id')
         .get(auctions.read)
-        .delete(auctions.remove);
+        .delete(
+            loginRequired,
+            auctions.remove
+        )
+        .patch(loginRequired,
+            auctions.update)
     app.route(rootUrl + '/auctions')
         .get(auctions.list)
         .post(

@@ -1,6 +1,6 @@
 import { getPool } from "../../config/db";
 import Logger from "../../config/logger";
-import {Auction, Category} from "../../auction_types";
+import {Auction, Category, Properties} from "../../auction_types";
 import {ResultSetHeader} from "mysql2";
 
 
@@ -117,6 +117,25 @@ const insert = async (title: string, description: string, categoryId: number, en
     return result;
 };
 
+const update = async (id : number, properties: Partial<Properties>) : Promise<void> => {
+
+    const conn = await getPool().getConnection();
+
+    let query = 'update auction set'
+
+    const parameters = [];
+
+    for (const property in properties) {
+        if (properties.hasOwnProperty(property)) {
+             parameters.push(` ${conn.escapeId(property)} = ${conn.escape(properties[property as keyof typeof properties])}`);
+        }
+    }
+    query += parameters.join(", ") + ' where id = ?'
+    ;
+    conn.query(query, id);
+    conn.release();
+}
+
 
 const remove = async (id: number) : Promise<void> => {
     Logger.info(`Deleting auction ${id} from the database`);
@@ -146,4 +165,4 @@ const getCategories = async () : Promise<Category[]> => {
     return rows;
 };
 
-export {getAll, getOne, insert, remove, categoryExists, getCategories}
+export {getAll, getOne, insert, update, remove, categoryExists, getCategories}

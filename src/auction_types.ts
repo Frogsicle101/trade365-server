@@ -31,3 +31,11 @@ export type Category = {
     id: number,
     name: string
 }
+
+export type Properties = {
+    title: string,
+    description: string,
+    category_id: number,
+    end_date: string,
+    reserve: number
+}

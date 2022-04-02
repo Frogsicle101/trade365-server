@@ -1,5 +1,6 @@
 import Logger from "../../config/logger";
 import {getPool} from "../../config/db";
+import moment from "moment";
 
 const getAll = async (id: number) : Promise<any> => {
     Logger.info(`Getting bids from the database`);
@@ -19,4 +20,15 @@ const getAll = async (id: number) : Promise<any> => {
     return rows;
 }
 
-export {getAll}
+const insert = async (auctionId: number, bidderId: number, amount: number) : Promise<void> => {
+    Logger.info(`Inserting new bid into database`);
+    const conn = await getPool().getConnection();
+    const query = `insert into auction_bid (auction_id, user_id, amount, timestamp) values (?, ?, ?, ?)`;
+
+    const timestamp = moment().format("YYYY-MM-DD HH:mm:ss");
+
+    await conn.query(query, [auctionId, bidderId, amount, timestamp]);
+    conn.release();
+}
+
+export {getAll, insert}

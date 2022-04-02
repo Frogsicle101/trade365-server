@@ -112,9 +112,11 @@ const update = async (req: Request, res: Response): Promise<void> => {
             res.status(404).send('Auction not found');
             return
         } else if (req.body.authenticatedUserId !== auction.sellerId) {
+            res.statusMessage += "Wrong person";
             res.status(403).send();
             return
-        } else if (auction.numBids === 0) {
+        } else if (auction.numBids !== 0) {
+            res.statusMessage += "There are already bids";
             res.status(403).send();
             return
         } else {
@@ -166,16 +168,29 @@ const read = async (req: Request, res: Response): Promise<void> => {
 
 const remove = async (req: Request, res: Response): Promise<void> => {
     Logger.http(`DELETE single auction id: ${req.params.id}`)
-    const id = req.params.id;
+
     try {
-        const result = await auctions.remove(parseInt(id, 10));
-        if (result === null) {
+        const id = parseInt(req.params.id, 10);
+
+        const auction = await auctions.getOne(id);
+
+        if (auction === null) {
             res.status(404).send('Auction not found');
+        } else if (auction.numBids > 0) {
+            res.statusMessage += "Cannot delete auction with bids";
+            res.status(403).send();
+        } else if (auction.sellerId !== req.body.authenticatedUserId) {
+            res.statusMessage += "You cannot delete someone else's auction";
+            res.status(403).send();
         } else {
-            res.status(200).send(result);
+            await auctions.remove(id);
+            res.status(200).send();
         }
+
+
+
     } catch (err) {
-        res.status(500).send(`ERROR reading auction ${id}: ${err}`);
+        res.status(500).send(`ERROR removing auction ${req.params.id}: ${err}`);
     }
 };
 

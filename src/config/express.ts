@@ -8,7 +8,8 @@ export default () => {
     // MIDDLEWARE
     app.use(allowCrossOriginRequestsMiddleware);
     app.use(bodyParser.json());
-    app.use(bodyParser.raw({ type: 'text/plain' }));  // for the /executeSql endpoint
+    app.use(bodyParser.raw({ type: 'image/*', limit: '10mb' }));
+    app.use(bodyParser.raw({ type: 'text/plain' }));// for the /executeSql endpoint
 
     // DEBUG (you can remove these)
     app.use((req, res, next) => {
@@ -25,6 +26,7 @@ export default () => {
     require('../app/routes/user.routes')(app);
     require('../app/routes/auctions.routes')(app);
     require('../app/routes/bids.routes')(app);
+    require('../app/routes/images.routes')(app);
 
     return app;
 

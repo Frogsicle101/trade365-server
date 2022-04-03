@@ -165,4 +165,24 @@ const getCategories = async () : Promise<Category[]> => {
     return rows;
 };
 
-export {getAll, getOne, insert, update, remove, categoryExists, getCategories}
+const getImagePath = async (id: number) : Promise<string> => {
+    Logger.info(`Getting image for auction ${id} from the database`);
+    const conn = await getPool().getConnection();
+    const query = `select image_filename from auction where id = ?`;
+    const [ rows ] = await conn.query(query, id);
+
+    conn.release();
+    return (rows.length > 0) ? rows[0].image_filename : null;
+}
+
+const setImagePath = async (id: number, filename: string) : Promise<string> => {
+    Logger.info(`Setting image for auction ${id} from the database`);
+    const conn = await getPool().getConnection();
+    const query = `update auction set image_filename = ? where id = ?`;
+    const [ rows ] = await conn.query(query, [filename, id]);
+
+    conn.release();
+    return (rows.length > 0) ? rows[0].image_filename : null;
+}
+
+export {getAll, getOne, insert, update, remove, categoryExists, getCategories, getImagePath, setImagePath}

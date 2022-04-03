@@ -88,4 +88,33 @@ const emailAlreadyRegistered = async (email: string) : Promise<boolean> => {
     return result[0].count !== 0;
 }
 
-export {getOne, insert, getPasswordById, getPasswordByEmail, getUserIdByToken, updateUser, saveToken, deleteToken, emailAlreadyRegistered}
+const getImagePath = async (id: number) : Promise<string> => {
+    Logger.info(`Getting image for user ${id} from the database`);
+    const conn = await getPool().getConnection();
+    const query = `select image_filename from user where id = ?`;
+    const [ rows ] = await conn.query(query, id);
+
+    conn.release();
+    return (rows.length > 0) ? rows[0].image_filename : null;
+}
+
+const setImagePath = async (id: number, filename: string) : Promise<void> => {
+    Logger.info(`Setting image for user ${id} from the database`);
+    const conn = await getPool().getConnection();
+    const query = `update user set image_filename = ? where id = ?`;
+    await conn.query(query, [filename, id]);
+
+    conn.release();
+}
+
+const deleteImagePath = async (id: number) : Promise<void> => {
+    Logger.info(`Deleting image for user ${id} from the database`);
+    const conn = await getPool().getConnection();
+    const query = `update user set image_filename = null where id = ?`;
+    await conn.query(query, id);
+
+    conn.release();
+}
+
+export {getOne, insert, getPasswordById, getPasswordByEmail, getUserIdByToken, updateUser, saveToken, deleteToken,
+    emailAlreadyRegistered, getImagePath, setImagePath, deleteImagePath}

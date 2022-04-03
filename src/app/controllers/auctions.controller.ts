@@ -1,7 +1,6 @@
 import {Request, Response} from "express";
 import Logger from "../../config/logger";
 import * as auctions from "../models/auctions.model";
-import {Result, ValidationError, validationResult} from "express-validator";
 import moment from 'moment';
 import {Properties} from "../../auction_types";
 
@@ -42,7 +41,7 @@ const list = async (req: Request, res: Response): Promise<void> => {
         const validSorts = ["ALPHABETICAL_ASC", "ALPHABETICAL_DESC", "CLOSING_SOON", "CLOSING_LAST", "BIDS_ASC",
             "BIDS_DESC", "RESERVE_ASC", "RESERVE_DESC"];
         if (!validSorts.includes(req.query.sortBy.toString())) {
-            res.statusMessage += "Invalid sorting"
+            res.statusMessage = "Bad Request: Invalid sorting"
             res.status(400).send();
             return
         } else {
@@ -67,12 +66,6 @@ const list = async (req: Request, res: Response): Promise<void> => {
 const create = async (req: Request, res: Response) : Promise<void> => {
     Logger.http(`POST create an auction`)
 
-    const errors: Result<ValidationError> = validationResult(req);
-    if (!errors.isEmpty()) {
-        res.status(400).json({ errors: errors.array() });
-        return
-    }
-
     let reserve: number = 0;
     if (req.body.hasOwnProperty("reserve")) {
         reserve = parseInt(req.body.reserve, 10);
@@ -80,7 +73,7 @@ const create = async (req: Request, res: Response) : Promise<void> => {
 
     const currentDate = moment().format("YYYY-MM-DD HH:mm:ss.sss");
     if (req.body.endDate < currentDate) {
-        res.statusMessage += "Date must be in future";
+        res.statusMessage = "Bad Request: Date must be in future";
         res.status(400).send();
         return
     }
@@ -89,7 +82,7 @@ const create = async (req: Request, res: Response) : Promise<void> => {
 
 
     if (!await auctions.categoryExists(categoryId)) {
-        res.statusMessage += "Invalid category ID";
+        res.statusMessage = "Bad Request: Invalid category ID";
         res.status(400).send();
         return
     }
@@ -109,14 +102,15 @@ const update = async (req: Request, res: Response): Promise<void> => {
         const auction = await auctions.getOne(parseInt(req.params.id, 10));
 
         if (auction === null) {
-            res.status(404).send('Auction not found');
+            res.statusMessage = "Not Found: There is no auction with that ID";
+            res.status(404).send();
             return
         } else if (req.body.authenticatedUserId !== auction.sellerId) {
-            res.statusMessage += "Wrong person";
+            res.statusMessage = "Forbidden: You are not permitted to edit someone else's auction";
             res.status(403).send();
             return
         } else if (auction.numBids !== 0) {
-            res.statusMessage += "There are already bids";
+            res.statusMessage = "Forbidden: There are already bids on that auction";
             res.status(403).send();
             return
         } else {
@@ -131,7 +125,7 @@ const update = async (req: Request, res: Response): Promise<void> => {
             if (req.body.hasOwnProperty("categoryId")) {
                 const id = parseInt(req.body.categoryId, 10);
                 if (!(await auctions.categoryExists(id))) {
-                    res.statusMessage += "Need a valid category ID";
+                    res.statusMessage = "Bad Request: That category id does not exist";
                     res.status(400).send();
                     return
                 }
@@ -157,7 +151,8 @@ const read = async (req: Request, res: Response): Promise<void> => {
     try {
         const result = await auctions.getOne(parseInt(id, 10));
         if (result === null) {
-            res.status(404).send('Auction not found');
+            res.statusMessage = "Not Found: That auction does not exist";
+            res.status(404).send();
         } else {
             res.status(200).send(result);
         }
@@ -175,12 +170,13 @@ const remove = async (req: Request, res: Response): Promise<void> => {
         const auction = await auctions.getOne(id);
 
         if (auction === null) {
-            res.status(404).send('Auction not found');
+            res.statusMessage = "Not Found: That auction does not exist";
+            res.status(404).send()
         } else if (auction.numBids > 0) {
-            res.statusMessage += "Cannot delete auction with bids";
+            res.statusMessage = "Forbidden: There are already bids on that auction";
             res.status(403).send();
         } else if (auction.sellerId !== req.body.authenticatedUserId) {
-            res.statusMessage += "You cannot delete someone else's auction";
+            res.statusMessage = "Forbidden: You are not permitted to edit someone else's auction";
             res.status(403).send();
         } else {
             await auctions.remove(id);

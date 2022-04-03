@@ -66,7 +66,7 @@ const list = async (req: Request, res: Response): Promise<void> => {
 const create = async (req: Request, res: Response) : Promise<void> => {
     Logger.http(`POST create an auction`)
 
-    let reserve: number = 0;
+    let reserve: number = 1;
     if (req.body.hasOwnProperty("reserve")) {
         reserve = parseInt(req.body.reserve, 10);
     }

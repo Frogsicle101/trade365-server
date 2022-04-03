@@ -80,7 +80,7 @@ const putUserImage = async (req: Request, res: Response) : Promise<void> => {
         const numericId = parseInt(id, 10);
         const user = await users.getOne(numericId);
 
-        if (user.length === 0) {
+        if (user == null) {
             res.status(404).send();
         } else if (req.body.authenticatedUserId !== numericId) {
             res.status(403).send();
@@ -113,9 +113,9 @@ const deleteUserImage = async (req: Request, res: Response) : Promise<void> => {
 
         const filename = await users.getImagePath(numericId);
 
-        if (filename === null || filename === "null") {
+        if (user === null) {
             res.status(404).send();
-        } else if (user.length === 0) {
+        } else if (filename === null || filename === "null") {
             res.status(404).send();
         } else if (req.body.authenticatedUserId !== numericId) {
             res.status(403).send();

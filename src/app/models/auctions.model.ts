@@ -26,7 +26,7 @@ const sortText = (sortBy: string) => {
     }
 }
 
-const getAll = async (startIndex: number, count: number, q: string, categoryIds: number[], sellerId: number, bidderId: number, sortBy: string) : Promise<Auction[]> => {
+const getAll = async (startIndex: number, count: number, q: string, categoryIds: number[], sellerId: number, bidderId: number, sortBy: string) : Promise<any> => {
     Logger.info(`Getting auctions from the database`);
     const conn = await getPool().getConnection();
     let query = `select
@@ -69,7 +69,10 @@ const getAll = async (startIndex: number, count: number, q: string, categoryIds:
 
     const [ rows ] = await conn.query(query);
     conn.release();
-    return rows.slice(startIndex, startIndex + (count !== null ? count: rows.length));
+    return {
+        rows: rows.slice(startIndex, Math.max(startIndex + (count !== null ? count: rows.length), rows.length)),
+        count: rows.length
+    };
 }
 
 const getOne = async (id: number) : Promise<Auction> => {

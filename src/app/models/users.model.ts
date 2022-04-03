@@ -3,13 +3,13 @@ import Logger from "../../config/logger";
 import {ResultSetHeader} from "mysql2";
 
 
-const getOne = async (id: number) : Promise<User[]> => {
+const getOne = async (id: number) : Promise<User> => {
     Logger.info(`Getting user ${id} from the database`);
     const conn = await getPool().getConnection();
     const query = 'select first_name, last_name, email from user where id = ?';
     const [ rows ] = await conn.query( query, [ id ] );
     conn.release();
-    return rows;
+    return (rows.length === 1) ? rows[0] : null;
 };
 
 const insert = async (firstName: string, lastName: string, email: string, password: string) : Promise<ResultSetHeader> => {

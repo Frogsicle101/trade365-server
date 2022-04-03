@@ -54,8 +54,8 @@ const list = async (req: Request, res: Response): Promise<void> => {
     try {
         const result = await auctions.getAll(startIndex, count, q, categoryIds, sellerId, bidderId, sortBy);
         res.status(200).send({
-            count: result.length,
-            auctions: result
+            count: result.count,
+            auctions: result.rows
         });
 
     } catch (err) {

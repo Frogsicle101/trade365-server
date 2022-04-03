@@ -1,7 +1,6 @@
 import * as users from '../models/users.model';
 import Logger from "../../config/logger";
 import {Request, Response} from "express";
-import {Result, ValidationError, validationResult} from "express-validator";
 import {uid} from 'rand-token';
 
 import * as passwords from "../services/passwords.service";
@@ -16,11 +15,10 @@ const read = async (req: Request, res: Response) : Promise<void> => {
         const token = req.header('X-Authorization');
         const authId = (await getUserIdByToken(token)).id;
 
-        const result = await users.getOne(numId);
-        if( result.length === 0 ){
+        const user = await users.getOne(numId);
+        if(user === null){
             res.status( 404 ).send('User not found');
         } else {
-            const user: User = result[0]
             if (authId === numId) {
                 res.status( 200 ).send({
                     firstName: user.first_name,
@@ -45,12 +43,6 @@ const create = async (req: Request, res: Response) : Promise<void> => {
     Logger.http(`POST create a user`)
 
     try {
-        const errors: Result<ValidationError> = validationResult(req);
-        if (!errors.isEmpty()) {
-            res.status(400).json({ errors: errors.array() });
-            return
-        }
-
         if (!await users.emailAlreadyRegistered(req.body.email)) {
             const result = await users.insert(
                 req.body.firstName,
@@ -72,12 +64,6 @@ const create = async (req: Request, res: Response) : Promise<void> => {
 const login = async (req: Request, res: Response) : Promise<void> => {
     Logger.http(`POST Login user`);
     try {
-        const errors: Result<ValidationError> = validationResult(req);
-        if (!errors.isEmpty()) {
-            res.status(400).json({ errors: errors.array() });
-            return
-        }
-
         const result = await users.getPasswordByEmail(req.body.email);
         if (result.length === 1) {
             const databaseHash = result[0].password;
@@ -106,11 +92,6 @@ const login = async (req: Request, res: Response) : Promise<void> => {
 const logout = async (req: Request, res: Response) : Promise<void> => {
     Logger.http(`POST Logout user`);
     try {
-        const errors: Result<ValidationError> = validationResult(req);
-        if (!errors.isEmpty()) {
-            res.status(400).json({ errors: errors.array() });
-            return
-        }
 
         await users.deleteToken(req.body.authenticatedUserId);
         res.status(200).send();
@@ -124,53 +105,42 @@ const logout = async (req: Request, res: Response) : Promise<void> => {
 const update = async (req: Request, res:Response) : Promise<void> => {
     Logger.http(`PATCH update id: ${req.params.id}`);
     try {
-        const errors: Result<ValidationError> = validationResult(req);
-        if (!errors.isEmpty()) {
-            res.status(400).json({ errors: errors.array() });
-            return
-        }
-    const id = parseInt(req.params.id, 10)
-    if (id !== req.body.authenticatedUserId) {
-        res.status(403).send()
-    } else {
-        const result = await users.getOne(id);
-        if( result.length === 0 ) {
-            res.status( 404 ).send('User not found');
+        const id = parseInt(req.params.id, 10)
+        if (id !== req.body.authenticatedUserId) {
+            res.status(403).send()
         } else {
+            const user = await users.getOne(id);
+            if(user === null) {
+                res.status( 404 ).send('User not found');
+            } else {
 
-            const properties: Partial<Properties> = {};
+                const properties: Partial<Properties> = {};
 
-            if (req.body.hasOwnProperty("firstName")) {
-                properties.first_name = req.body.firstName;
-            }
-            if (req.body.hasOwnProperty("lastName")) {
-                properties.last_name = req.body.lastName;
-            }
-            if (req.body.hasOwnProperty("email")) {
-                if (req.body.email.isEmail()) {
+                if (req.body.hasOwnProperty("firstName")) {
+                    properties.first_name = req.body.firstName;
+                }
+                if (req.body.hasOwnProperty("lastName")) {
+                    properties.last_name = req.body.lastName;
+                }
+                if (req.body.hasOwnProperty("email")) {
                     properties.email = req.body.email;
-                } else {
-                    res.statusMessage += ": email must be a valid email address";
-                    res.status(400).send();
-                    return
                 }
-            }
-            if (req.body.hasOwnProperty("password")) {
-                const hash = await users.getPasswordById(id);
-                if (req.body.hasOwnProperty("currentPassword") && await passwords.match(req.body.currentPassword, hash)) {
-                    properties.password = req.body.password;
-                } else {
-                    res.statusMessage += ": Incorrect Password";
-                    res.status(400).send();
-                    return
+                if (req.body.hasOwnProperty("password")) {
+                    const hash = await users.getPasswordById(id);
+                    if (req.body.hasOwnProperty("currentPassword") && await passwords.match(req.body.currentPassword, hash)) {
+                        properties.password = req.body.password;
+                    } else {
+                        res.statusMessage += ": Incorrect Password";
+                        res.status(400).send();
+                        return
+                    }
+
                 }
 
+                await users.updateUser(id, properties);
+                res.status(200).send();
             }
-
-            await users.updateUser(id, properties);
-            res.status(200).send();
         }
-    }
 
     } catch (err) {
         res.status(500).send(`ERROR logging out : ${err}`);

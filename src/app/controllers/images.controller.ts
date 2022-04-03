@@ -1,12 +1,6 @@
 import * as auctions from '../models/auctions.model';
 import * as users from '../models/users.model';
-import Logger from "../../config/logger";
 import {Request, Response} from "express";
-import {Result, ValidationError, validationResult} from "express-validator";
-import {uid} from 'rand-token';
-
-import * as passwords from "../services/passwords.service";
-import {getUserIdByToken} from "../models/users.model";
 import fs from 'mz/fs';
 import {getImagePath} from "../models/auctions.model";
 
@@ -117,15 +111,19 @@ const deleteUserImage = async (req: Request, res: Response) : Promise<void> => {
         const numericId = parseInt(id, 10);
         const user = await users.getOne(numericId);
 
-        if (user.length === 0) {
+        const filename = await users.getImagePath(numericId);
+
+        if (filename === null || filename === "null") {
+            res.status(404).send();
+        } else if (user.length === 0) {
             res.status(404).send();
         } else if (req.body.authenticatedUserId !== numericId) {
             res.status(403).send();
         } else {
-
-            const filePath = await users.getImagePath(numericId);
-            await fs.unlink(filePath);
+            await fs.unlink("storage/images/" + filename);
             await users.deleteImagePath(numericId);
+            res.status(200).send();
+
 
         }
 

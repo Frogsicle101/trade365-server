@@ -17,7 +17,8 @@ const read = async (req: Request, res: Response) : Promise<void> => {
 
         const user = await users.getOne(numId);
         if(user === null){
-            res.status( 404 ).send('User not found');
+            res.statusMessage = "Not Found: There is no user with that ID";
+            res.status( 404 ).send();
         } else {
             if (authId === numId) {
                 res.status( 200 ).send({
@@ -82,7 +83,8 @@ const login = async (req: Request, res: Response) : Promise<void> => {
                 return
             }
         }
-        res.status(400).send("Username or password incorrect")
+        res.statusMessage = "Bad Request: Username or password incorrect";
+        res.status(400).send()
 
     } catch (err) {
         res.status(500).send(`ERROR logging in : ${err}`);
@@ -107,11 +109,13 @@ const update = async (req: Request, res:Response) : Promise<void> => {
     try {
         const id = parseInt(req.params.id, 10)
         if (id !== req.body.authenticatedUserId) {
-            res.status(403).send()
+            res.statusMessage = "Forbidden: You do not have permission to edit that user";
+            res.status(403).send();
         } else {
             const user = await users.getOne(id);
             if(user === null) {
-                res.status( 404 ).send('User not found');
+                res.statusMessage = "Not Found: There is no user with that ID";
+                res.status(404).send();
             } else {
 
                 const properties: Partial<Properties> = {};
@@ -130,7 +134,7 @@ const update = async (req: Request, res:Response) : Promise<void> => {
                     if (req.body.hasOwnProperty("currentPassword") && await passwords.match(req.body.currentPassword, hash)) {
                         properties.password = req.body.password;
                     } else {
-                        res.statusMessage += ": Incorrect Password";
+                        res.statusMessage = "Bad Request: Incorrect Password";
                         res.status(400).send();
                         return
                     }

@@ -11,6 +11,7 @@ const readAuctionImage = async (req: Request, res: Response) : Promise<void> => 
         const numericId = parseInt(id, 10);
         const filename = await auctions.getImagePath(numericId);
         if (filename === null || filename === "null") {
+            res.statusMessage = "Not Found: There is no photo available for that auction";
             res.status(404).send();
         } else {
             res.sendFile(filename, {root: 'storage/images'});
@@ -31,10 +32,13 @@ const putAuctionImage = async (req: Request, res: Response) : Promise<void> => {
         const auction = await auctions.getOne(numericId);
 
         if (auction === null) {
+            res.statusMessage = "Not Found: There is no auction with that ID";
             res.status(404).send();
         } else if (req.body.authenticatedUserId !== auction.sellerId) {
+            res.statusMessage = "Forbidden: You do not have permission to edit that auction";
             res.status(403).send();
         } else if (!req.is(["image/png", "image/jpeg", "image/gif"])) {
+            res.statusMessage = "Bad Request: Image must be png, jpg, or gif"
             res.status(400).send();
         } else {
 
@@ -61,6 +65,7 @@ const readUserImage = async (req: Request, res: Response) : Promise<void> => {
         const numericId = parseInt(id, 10);
         const filename = await users.getImagePath(numericId);
         if (filename === null || filename === "null") {
+            res.statusMessage = "Not Found: There is no user with that ID";
             res.status(404).send();
         } else {
             res.sendFile(filename, {root: 'storage/images'});
@@ -114,10 +119,13 @@ const deleteUserImage = async (req: Request, res: Response) : Promise<void> => {
         const filename = await users.getImagePath(numericId);
 
         if (user === null) {
+            res.statusMessage = "Not Found: There is no user with that ID";
             res.status(404).send();
         } else if (filename === null || filename === "null") {
+            res.statusMessage = "Not Found: There is no profile photo for that ID";
             res.status(404).send();
         } else if (req.body.authenticatedUserId !== numericId) {
+            res.statusMessage = "Forbidden: You do not have permission to edit that users profile photo"
             res.status(403).send();
         } else {
             await fs.unlink("storage/images/" + filename);
